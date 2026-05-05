@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>きづきノート</title>
+<style>
+:root {
+  --bg:#F4FAF6; --bg2:#E8F4EC; --card:#FFFFFF;
+  --text:#1C2E22; --mu:#6E8C76; --mu2:#A8C4AE; --border:#C8E0CE;
+  --note-c:#5DCAA5; --note-bg:#DFF4EC; --note-dk:#0F6E56;
+  --voicy-c:#7F77DD; --voicy-bg:#EEEDFE; --voicy-dk:#3C3489;
+  --book-c:#D85A30; --book-bg:#FAECE7; --book-dk:#712B13;
+  --moya-c:#BA7517; --moya-bg:#FAEEDA; --moya-dk:#633806;
+  --other-c:#6E8C76; --other-bg:#E8F4EC; --other-dk:#2A4A32;
+  --accent:#3A7D52; --r:12px; --rs:8px;
+  --hdr-bg:rgba(244,250,246,.96);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:375px;max-width:375px;min-height:100vh;background:var(--bg);font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans',sans-serif;color:var(--text);overflow-x:hidden}
+body{padding-bottom:72px}
+
+.hdr{position:sticky;top:0;z-index:100;background:var(--hdr-bg);backdrop-filter:blur(10px);border-bottom:.5px solid var(--border);padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between}
+.hdr-left{display:flex;align-items:baseline;gap:8px}
+.hdr-title{font-size:20px;font-weight:700;letter-spacing:-.3px}
+.hdr-cnt{font-size:12px;color:var(--mu)}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.hdr-add{width:34px;height:34px;background:var(--accent);border-radius:50%;border:none;cursor:pointer;color:white;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center}
+.hdr-cfg{width:34px;height:34px;background:var(--bg2);border-radius:50%;border:.5px solid var(--border);cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:background .12s}
+.hdr-cfg:active{background:var(--border)}
+
+/* 設定シート */
+.cfg-section{margin-bottom:20px}
+.cfg-section-ttl{font-size:11px;font-weight:700;color:var(--mu);letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px}
+.cfg-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:2px 0}
+.cfg-toggle-lbl{font-size:14px;font-weight:500;color:var(--text)}
+.cfg-toggle-sub{font-size:11px;color:var(--mu);margin-top:1px}
+.toggle-wrap{position:relative;width:44px;height:26px;flex-shrink:0}
+.toggle-wrap input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;background:var(--border);border-radius:13px;cursor:pointer;transition:background .2s}
+.toggle-wrap input:checked + .toggle-track{background:var(--accent)}
+.toggle-track::after{content:'';position:absolute;width:20px;height:20px;background:white;border-radius:50%;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle-wrap input:checked + .toggle-track::after{transform:translateX(18px)}
+
+.theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.theme-opt{border:2px solid var(--border);border-radius:var(--r);padding:10px 6px 8px;cursor:pointer;text-align:center;transition:border-color .12s;background:none}
+.theme-opt.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.theme-swatch{width:36px;height:36px;border-radius:50%;margin:0 auto 6px;border:.5px solid rgba(0,0,0,.08)}
+.theme-name{font-size:11px;font-weight:600;color:var(--text)}
+
+.filter-bar{display:flex;gap:6px;padding:10px 16px 4px;overflow-x:auto;scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+.fpill{flex-shrink:0;padding:5px 12px;font-size:12px;font-weight:500;border:.5px solid var(--border);border-radius:20px;background:none;color:var(--mu);cursor:pointer;transition:all .12s;white-space:nowrap}
+.fpill.on{background:var(--accent);color:white;border-color:var(--accent)}
+
+.search-wrap{padding:6px 16px 4px}
+.search-inner{display:flex;align-items:center;background:var(--bg2);border-radius:var(--rs);padding:8px 12px;gap:8px}
+.search-inner svg{flex-shrink:0;opacity:.4}
+.search-inner input{flex:1;border:none;background:none;font-size:14px;color:var(--text);outline:none}
+.search-inner input::placeholder{color:var(--mu2)}
+
+.page{display:none}
+.page.active{display:block}
+
+.list-area{padding:8px 16px 0}
+.date-label{font-size:11px;color:var(--mu);letter-spacing:.4px;padding:10px 0 5px;font-weight:500}
+.card{background:var(--card);border-radius:var(--r);border:.5px solid var(--border);margin-bottom:8px;padding:12px 14px 12px 17px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .12s}
+.card:active{border-color:var(--mu2)}
+.card-stripe{position:absolute;left:0;top:0;bottom:0;width:3px}
+.card-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.card-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px}
+.card-note-mark{font-size:13px;opacity:.3}
+.card-note-mark.done{opacity:1;color:var(--note-dk)}
+.card-title{font-size:14px;font-weight:600;line-height:1.4;margin-bottom:3px;word-break:break-all}
+.card-memo{font-size:12px;color:var(--mu);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.card-date{font-size:11px;color:var(--mu2)}
+.card-src{font-size:11px;color:var(--mu);background:var(--bg2);padding:2px 6px;border-radius:4px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty{text-align:center;padding:56px 16px}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.4}
+.empty-txt{font-size:14px;color:var(--mu);line-height:1.7}
+
+.sum-pad{padding:16px 16px 0}
+.sum-head{font-size:18px;font-weight:700;margin-bottom:3px}
+.sum-sub{font-size:12px;color:var(--mu);margin-bottom:14px}
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cat-card{background:var(--card);border:.5px solid var(--border);border-radius:var(--r);padding:14px 14px 14px 18px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .12s}
+.cat-card:active{border-color:var(--mu2)}
+.cat-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.cat-icon{font-size:24px;margin-bottom:7px}
+.cat-name{font-size:13px;font-weight:700;margin-bottom:2px}
+.cat-cnt{font-size:12px;color:var(--mu)}
+.cat-cnt span{font-size:20px;font-weight:700;color:var(--text);display:block;margin-top:4px}
+.recent-section{padding:18px 16px 0}
+.recent-ttl{font-size:12px;font-weight:600;color:var(--mu);letter-spacing:.4px;margin-bottom:8px}
+.recent-card{background:var(--card);border:.5px solid var(--border);border-radius:var(--rs);padding:10px 12px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:border-color .12s}
+.recent-card:active{border-color:var(--mu2)}
+.recent-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;flex-shrink:0}
+.recent-title{flex:1;font-size:13px;font-weight:500;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.recent-date{font-size:11px;color:var(--mu2);flex-shrink:0}
+
+.bnav{position:fixed;bottom:0;left:0;width:375px;background:rgba(244,250,246,.97);backdrop-filter:blur(12px);border-top:.5px solid var(--border);display:flex;padding:8px 0 env(safe-area-inset-bottom,8px);z-index:200}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;cursor:pointer;padding:4px 0}
+.bnav-icon{font-size:19px}
+.bnav-lbl{font-size:10px;color:var(--mu)}
+.bnav-btn.active .bnav-lbl{color:var(--text);font-weight:600}
+.bnav-btn:not(.active) .bnav-icon{opacity:.4}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:flex-end;justify-content:center}
+.overlay.show{display:flex}
+.sheet{width:375px;background:var(--card);border-radius:20px 20px 0 0;padding:0 0 env(safe-area-inset-bottom,16px);max-height:92vh;overflow-y:auto;animation:slideUp .22s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sh-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0}
+.sh-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 10px;border-bottom:.5px solid var(--border);position:sticky;top:0;background:var(--card);z-index:10}
+.sh-ttl{font-size:16px;font-weight:700}
+.sh-close{width:28px;height:28px;background:var(--bg2);border:none;border-radius:50%;cursor:pointer;font-size:14px;color:var(--mu);display:flex;align-items:center;justify-content:center}
+.sh-body{padding:14px 16px}
+
+.ff{margin-bottom:13px}
+.ff label{display:block;font-size:12px;color:var(--mu);margin-bottom:4px;font-weight:500}
+.ff input,.ff select,.ff textarea{width:100%;background:var(--bg2);border:.5px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:14px;color:var(--text);font-family:inherit;outline:none;-webkit-appearance:none}
+.ff input:focus,.ff select:focus,.ff textarea:focus{border-color:var(--accent);background:var(--card)}
+.ff textarea{min-height:88px;resize:none;line-height:1.6}
+.ff2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:13px}
+.cat-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:13px}
+.cat-opt{border:1.5px solid var(--border);border-radius:var(--rs);padding:8px 4px;text-align:center;cursor:pointer;font-size:12px;font-weight:600;color:var(--mu);background:none;transition:all .1s}
+.cat-opt span{display:block;font-size:17px;margin-bottom:2px}
+.cat-opt.selected{color:var(--text);border-color:var(--accent);background:var(--bg2)}
+.save-btn{width:100%;padding:14px;background:var(--accent);color:white;border:none;border-radius:var(--r);font-size:15px;font-weight:700;cursor:pointer;margin-top:2px}
+
+/* 本検索 */
+.book-search-box{background:var(--bg2);border-radius:var(--r);padding:12px;margin-bottom:13px}
+.book-mode-row{display:flex;gap:6px;margin-bottom:10px}
+.book-mode-btn{flex:1;padding:8px 4px;font-size:12px;font-weight:600;border:1.5px solid var(--border);border-radius:var(--rs);background:none;color:var(--mu);cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center;gap:4px}
+.book-mode-btn.active{border-color:var(--book-c);background:var(--book-bg);color:var(--book-dk)}
+.scan-btn-wrap{text-align:center;padding:4px 0 8px}
+.scan-cam-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--book-c);color:white;border:none;border-radius:var(--r);font-size:14px;font-weight:700;cursor:pointer}
+.scan-cam-btn span{font-size:18px}
+.scan-status{font-size:12px;color:var(--mu);text-align:center;margin-top:6px;min-height:18px;line-height:1.5}
+.scan-status.ok{color:var(--book-dk);font-weight:600}
+.scan-status.err{color:#A32D2D}
+.book-search-row{display:flex;gap:8px;margin-bottom:8px}
+.book-search-row input{flex:1;background:var(--card);border:.5px solid var(--border);border-radius:var(--rs);padding:9px 11px;font-size:14px;color:var(--text);font-family:inherit;outline:none;-webkit-appearance:none}
+.book-search-row input:focus{border-color:var(--accent)}
+.book-srch-btn{flex-shrink:0;padding:9px 14px;background:var(--accent);color:white;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;cursor:pointer}
+.book-hint{font-size:11px;color:var(--mu);margin-bottom:8px;line-height:1.5}
+.book-results{display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto}
+.book-result-item{background:var(--card);border:.5px solid var(--border);border-radius:var(--rs);padding:10px 12px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;transition:border-color .12s}
+.book-result-item:active,.book-result-item:hover{border-color:var(--book-c)}
+.book-thumb{width:36px;height:50px;object-fit:cover;border-radius:3px;flex-shrink:0;background:var(--bg2)}
+.book-info .book-title{font-size:13px;font-weight:600;margin-bottom:2px;word-break:break-all}
+.book-info .book-author{font-size:12px;color:var(--mu)}
+.book-selected{background:var(--book-bg);border:.5px solid var(--book-c);border-radius:var(--rs);padding:10px 12px;display:flex;gap:10px;align-items:flex-start;margin-bottom:4px}
+.book-selected .book-title{font-size:13px;font-weight:600;color:var(--book-dk);margin-bottom:2px}
+.book-selected .book-author{font-size:12px;color:var(--book-dk);opacity:.8}
+.book-clear{font-size:11px;color:var(--mu);text-decoration:underline;background:none;border:none;cursor:pointer;margin-top:4px;padding:0}
+.book-loading{font-size:13px;color:var(--mu);text-align:center;padding:12px 0}
+.book-empty{font-size:13px;color:var(--mu);text-align:center;padding:10px 0}
+
+/* 詳細 */
+.det-cat{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;margin-bottom:10px}
+.det-title{font-size:18px;font-weight:700;line-height:1.4;margin-bottom:12px}
+.det-body{font-size:14px;color:#3A3835;line-height:1.75;white-space:pre-wrap;word-break:break-all}
+.det-meta{margin-top:14px;padding-top:12px;border-top:.5px solid var(--border);display:flex;flex-direction:column;gap:7px}
+.det-row{display:flex;gap:10px;align-items:flex-start}
+.det-lbl{font-size:11px;color:var(--mu);width:48px;flex-shrink:0;padding-top:1px}
+.det-val{font-size:13px;color:var(--text);word-break:break-all}
+.det-link{font-size:13px;color:#1A60B0;text-decoration:underline;word-break:break-all}
+.note-check-area{margin-top:16px;padding-top:14px;border-top:.5px solid var(--border)}
+.note-check-btn{width:100%;padding:13px;border-radius:var(--r);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;border:1.5px solid var(--border);background:var(--bg2);color:var(--mu)}
+.note-check-btn.checked{background:var(--note-bg);border-color:var(--note-c);color:var(--note-dk)}
+.note-check-btn .checkmark{font-size:16px}
+.det-actions{display:flex;gap:8px;margin-top:12px}
+.det-edit{flex:1;padding:11px;background:var(--bg2);border:none;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;color:var(--text)}
+.det-del{padding:11px 16px;background:#FEE2E2;border:none;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;color:#A32D2D}
+
+.catlist-item{border-bottom:.5px solid var(--border);padding:11px 0;cursor:pointer}
+.catlist-item:last-child{border-bottom:none}
+.catlist-title{font-size:14px;font-weight:600;margin-bottom:3px;word-break:break-all}
+.catlist-sub{font-size:12px;color:var(--mu);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* src非表示用 */
+.hide{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-title">きづきノート</div>
+    <div class="hdr-cnt" id="hdr-cnt"></div>
+  </div>
+  <div class="hdr-right">
+    <button class="hdr-add" onclick="openAdd()" id="add-fab">＋</button>
+    <button class="hdr-cfg" onclick="openSettings()">⚙️</button>
+  </div>
+</div>
+
+<div class="page active" id="page-home">
+  <div class="filter-bar">
+    <button class="fpill on" onclick="setFilter('all',this)">すべて</button>
+    <button class="fpill" onclick="setFilter('note_done',this)">✍️ note済み</button>
+    <button class="fpill" onclick="setFilter('note_undone',this)">⬜ note未</button>
+  </div>
+  <div class="search-wrap">
+    <div class="search-inner">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="#1C1B19" stroke-width="1.5"/><path d="M11 11L14.5 14.5" stroke="#1C1B19" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input id="search-input" type="text" placeholder="キーワードで検索…" oninput="renderHome()">
+    </div>
+  </div>
+  <div class="list-area" id="home-list"></div>
+</div>
+
+<div class="page" id="page-summary">
+  <div class="sum-pad">
+    <div class="sum-head">カテゴリまとめ</div>
+    <div class="sum-sub" id="sum-sub"></div>
+    <div class="cat-grid" id="cat-grid"></div>
+  </div>
+  <div class="recent-section">
+    <div class="recent-ttl">最近の気づき</div>
+    <div id="recent-list"></div>
+  </div>
+</div>
+
+<div class="bnav">
+  <button class="bnav-btn active" id="bnav-home" onclick="goPage('home')">
+    <span class="bnav-icon">📋</span><span class="bnav-lbl">すべて</span>
+  </button>
+  <button class="bnav-btn" id="bnav-summary" onclick="goPage('summary')">
+    <span class="bnav-icon">🗂</span><span class="bnav-lbl">まとめ</span>
+  </button>
+</div>
+
+<!-- 追加/編集シート -->
+<div class="overlay" id="ov-add" onclick="if(event.target===this)closeAdd()">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ttl" id="add-ttl">気づきを追加</div>
+      <button class="sh-close" onclick="closeAdd()">✕</button>
+    </div>
+    <div class="sh-body">
+      <div class="ff"><label>カテゴリ</label><div class="cat-selector" id="cat-sel"></div></div>
+
+      <!-- 本専用：書籍検索 -->
+      <div id="book-section" class="hide">
+        <div class="book-search-box">
+          <div class="book-mode-row">
+            <button class="book-mode-btn active" id="bmode-cam" onclick="setBookMode('cam')"><span>📷</span>バーコードをスキャン</button>
+            <button class="book-mode-btn" id="bmode-txt" onclick="setBookMode('txt')"><span>🔍</span>タイトル・著者で検索</button>
+          </div>
+          <div id="book-cam-area">
+            <div class="scan-btn-wrap">
+              <button class="scan-cam-btn" onclick="triggerCamera()">
+                <span>📷</span>カメラを起動してスキャン
+              </button>
+              <input id="barcode-input" type="file" accept="image/*" capture="environment"
+                style="display:none" onchange="handleBarcodeImage(this)">
+            </div>
+            <div class="scan-status" id="scan-status">本の裏表紙バーコードを撮影してください</div>
+          </div>
+          <div id="book-txt-area" class="hide">
+            <div class="book-hint">タイトル・著者名・ISBNで検索</div>
+            <div class="book-search-row">
+              <input id="book-q" type="text" placeholder="タイトル・著者・ISBN番号">
+              <button class="book-srch-btn" onclick="searchBook()">検索</button>
+            </div>
+          </div>
+          <div id="book-result-area"></div>
+        </div>
+        <div id="book-selected-area" class="hide" style="margin-bottom:13px"></div>
+      </div>
+
+      <div class="ff">
+        <label>タイトル <span style="color:#E24B4A">*</span></label>
+        <input id="f-title" type="text" placeholder="気づきのタイトル">
+      </div>
+      <div class="ff">
+        <label style="display:flex;align-items:center;justify-content:space-between">
+          <span>メモ・内容</span>
+          <span style="font-size:10px;font-weight:400">。！？絵文字の後に自動改行</span>
+        </label>
+        <textarea id="f-memo" placeholder="気づいたこと、感じたこと、学んだこと…"></textarea>
+      </div>
+      <div class="ff2">
+        <div class="ff" style="margin-bottom:0"><label>日付</label><input id="f-date" type="date"></div>
+        <div class="ff" style="margin-bottom:0"><label>時刻</label><input id="f-time" type="time"></div>
+      </div>
+      <!-- 出典：本のときは隠す（id="src-row"で制御） -->
+      <div class="ff2" id="src-row">
+        <div class="ff" style="margin-bottom:0"><label>出典</label><input id="f-src" type="text" placeholder="タイトル・話者など"></div>
+        <div class="ff" style="margin-bottom:0"><label>URL</label><input id="f-url" type="url" placeholder="https://..."></div>
+      </div>
+      <button class="save-btn" onclick="saveEntry()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 詳細シート -->
+<div class="overlay" id="ov-detail" onclick="if(event.target===this)closeDetail()">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ttl">詳細</div>
+      <button class="sh-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="sh-body" id="det-body"></div>
+  </div>
+</div>
+
+<!-- 項目別一覧シート -->
+<div class="overlay" id="ov-catlist" onclick="if(event.target===this)closeCatList()">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ttl" id="catlist-ttl"></div>
+      <button class="sh-close" onclick="closeCatList()">✕</button>
+    </div>
+    <div class="sh-body" id="catlist-body"></div>
+  </div>
+</div>
+
+<!-- 設定シート -->
+<div class="overlay" id="ov-settings" onclick="if(event.target===this)closeSettings()">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ttl">設定</div>
+      <button class="sh-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="sh-body">
+
+      <!-- 自動改行 -->
+      <div class="cfg-section">
+        <div class="cfg-section-ttl">入力</div>
+        <div class="cfg-toggle-row">
+          <div>
+            <div class="cfg-toggle-lbl">自動改行</div>
+            <div class="cfg-toggle-sub">。！？絵文字の後に自動で改行</div>
+          </div>
+          <label class="toggle-wrap">
+            <input type="checkbox" id="cfg-autolb" onchange="saveSettings()">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- テーマカラー -->
+      <div class="cfg-section">
+        <div class="cfg-section-ttl">テーマカラー</div>
+        <div class="theme-grid" id="theme-grid">
+          <button class="theme-opt" data-theme="green" onclick="setTheme('green',this)">
+            <div class="theme-swatch" style="background:linear-gradient(135deg,#E8F4EC,#3A7D52)"></div>
+            <div class="theme-name">グリーン</div>
+          </button>
+          <button class="theme-opt" data-theme="pink" onclick="setTheme('pink',this)">
+            <div class="theme-swatch" style="background:linear-gradient(135deg,#FDF0F4,#C4607A)"></div>
+            <div class="theme-name">ピンク</div>
+          </button>
+          <button class="theme-opt" data-theme="gray" onclick="setTheme('gray',this)">
+            <div class="theme-swatch" style="background:linear-gradient(135deg,#F5F5F5,#6B7280)"></div>
+            <div class="theme-name">グレー</div>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── ストレージ（localStorageが使えない環境でもメモリで動作） ── */
+const store = (function(){
+  const KEY = 'kidzuki-v1';
+  let _mem = null;
+  function load(){
+    if(_mem) return _mem;
+    try{ _mem = JSON.parse(localStorage.getItem(KEY)||'[]'); }
+    catch(e){ _mem = []; }
+    return _mem;
+  }
+  function persist(arr){
+    _mem = arr;
+    try{ localStorage.setItem(KEY, JSON.stringify(arr)); }catch(e){}
+  }
+  return { load, persist };
+})();
+
+/* ── 設定 ── */
+const THEMES = {
+  green: {
+    '--bg':'#F4FAF6','--bg2':'#E8F4EC','--text':'#1C2E22',
+    '--mu':'#6E8C76','--mu2':'#A8C4AE','--border':'#C8E0CE',
+    '--accent':'#3A7D52','--other-c':'#6E8C76','--other-bg':'#E8F4EC','--other-dk':'#2A4A32',
+    '--hdr-bg':'rgba(244,250,246,.96)','--bnav-bg':'rgba(244,250,246,.97)',
+  },
+  pink: {
+    '--bg':'#FDF5F7','--bg2':'#FAEAEF','--text':'#2E1C22',
+    '--mu':'#9C6878','--mu2':'#D4A0B0','--border':'#EAC8D2',
+    '--accent':'#C4607A','--other-c':'#9C6878','--other-bg':'#FAEAEF','--other-dk':'#6B1E30',
+    '--hdr-bg':'rgba(253,245,247,.96)','--bnav-bg':'rgba(253,245,247,.97)',
+  },
+  gray: {
+    '--bg':'#F7F7F7','--bg2':'#EFEFEF','--text':'#1A1A1A',
+    '--mu':'#6B7280','--mu2':'#9CA3AF','--border':'#D1D5DB',
+    '--accent':'#4B5563','--other-c':'#6B7280','--other-bg':'#EFEFEF','--other-dk':'#1F2937',
+    '--hdr-bg':'rgba(247,247,247,.96)','--bnav-bg':'rgba(247,247,247,.97)',
+  },
+};
+
+let _settings = {theme:'green', autoLB:true};
+(function loadSettings(){
+  try{
+    const s=JSON.parse(localStorage.getItem('kidzuki-cfg')||'null');
+    if(s){ _settings = Object.assign(_settings, s); }
+  }catch(e){}
+  applyTheme(_settings.theme, false);
+})();
+
+function applyTheme(name, animate){
+  const t=THEMES[name]||THEMES.green;
+  const root=document.documentElement;
+  Object.entries(t).forEach(([k,v])=>root.style.setProperty(k,v));
+  // bnav は CSS変数で制御できないので直接
+  const bnav=document.querySelector('.bnav');
+  if(bnav) bnav.style.background=t['--bnav-bg'];
+}
+
+function saveSettings(){
+  _settings.autoLB = document.getElementById('cfg-autolb').checked;
+  try{ localStorage.setItem('kidzuki-cfg', JSON.stringify(_settings)); }catch(e){}
+}
+
+function setTheme(name, el){
+  _settings.theme = name;
+  applyTheme(name, true);
+  document.querySelectorAll('.theme-opt').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  saveSettings();
+}
+
+function openSettings(){
+  // 現在の設定をUIに反映
+  document.getElementById('cfg-autolb').checked = _settings.autoLB;
+  document.querySelectorAll('.theme-opt').forEach(b=>{
+    b.classList.toggle('selected', b.dataset.theme===_settings.theme);
+  });
+  document.getElementById('ov-settings').classList.add('show');
+}
+function closeSettings(){ document.getElementById('ov-settings').classList.remove('show'); }
+
+const CATS={
+  note: {label:'note',    icon:'✍️', color:'var(--note-c)', bg:'var(--note-bg)', dk:'var(--note-dk)'},
+  voicy:{label:'Voicy',   icon:'🎙',  color:'var(--voicy-c)',bg:'var(--voicy-bg)',dk:'var(--voicy-dk)'},
+  book: {label:'本',      icon:'📚',  color:'var(--book-c)', bg:'var(--book-bg)', dk:'var(--book-dk)'},
+  moya: {label:'モヤログ', icon:'💭',  color:'var(--moya-c)', bg:'var(--moya-bg)', dk:'var(--moya-dk)'},
+  other:{label:'その他',  icon:'🗂',  color:'var(--other-c)',bg:'var(--other-bg)',dk:'var(--other-dk)'},
+};
+
+let entries     = store.load();
+let currentPage = 'home';
+let editId      = null;
+let selCat      = 'note';
+let filterMode  = 'all';
+let selectedBook= null;
+let bookMode    = 'cam';
+
+function save(){ store.persist(entries); }
+function today(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function nowTime(){ const d=new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function pad(n){ return String(n).padStart(2,'0'); }
+function fmtDate(s){ if(!s)return ''; const[y,m,d]=s.split('-'); return `${y}/${m}/${d}`; }
+function fmtDT(date,time){ const d=fmtDate(date); return time?`${d} ${time}`:d; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ── ページ切替 ── */
+function goPage(p){
+  currentPage=p;
+  ['home','summary'].forEach(id=>{
+    document.getElementById('page-'+id).classList.toggle('active',id===p);
+    document.getElementById('bnav-'+id).classList.toggle('active',id===p);
+  });
+  document.getElementById('add-fab').style.display = p==='home'?'':'none';
+  p==='home' ? renderHome() : renderSummary();
+}
+
+/* ── フィルター ── */
+function setFilter(f,el){
+  filterMode=f;
+  document.querySelectorAll('.fpill').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  renderHome();
+}
+
+/* ── ホーム ── */
+function renderHome(){
+  const kw=(document.getElementById('search-input').value||'').trim().toLowerCase();
+  let list=entries.slice();
+  if(filterMode==='note_done')   list=list.filter(e=>e.noted);
+  else if(filterMode==='note_undone') list=list.filter(e=>!e.noted);
+  if(kw) list=list.filter(e=>
+    (e.title||'').toLowerCase().includes(kw)||
+    (e.memo||'').toLowerCase().includes(kw)||
+    (e.src||'').toLowerCase().includes(kw)||
+    (e.bookAuthor||'').toLowerCase().includes(kw)
+  );
+  list.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.id-a.id);
+  document.getElementById('hdr-cnt').textContent = entries.length ? `${entries.length}件` : '';
+  if(!list.length){
+    document.getElementById('home-list').innerHTML=`<div class="empty"><div class="empty-icon">📝</div>
+      <div class="empty-txt">${kw||filterMode!=='all'?'該当する気づきがありません':'まだ気づきがありません。<br>＋ボタンから追加しましょう！'}</div></div>`;
+    return;
+  }
+  const groups={};
+  list.forEach(e=>{ const d=e.date||''; if(!groups[d])groups[d]=[]; groups[d].push(e); });
+  let html='';
+  Object.keys(groups).sort((a,b)=>b.localeCompare(a)).forEach(d=>{
+    html+=`<div class="date-label">${d?fmtDate(d):'日付なし'}</div>`;
+    groups[d].forEach(e=>{ html+=cardHtml(e); });
+  });
+  document.getElementById('home-list').innerHTML=html;
+}
+
+function cardHtml(e){
+  const c=CATS[e.cat]||CATS.other;
+  const nm=e.cat!=='note'?`<span class="card-note-mark${e.noted?' done':''}">✍️</span>`:'';
+  return `<div class="card" onclick="openDetail(${e.id})">
+    <div class="card-stripe" style="background:${c.color}"></div>
+    <div class="card-top-row">
+      <div class="card-badge" style="background:${c.bg};color:${c.dk}">${c.icon} ${c.label}</div>
+      ${nm}
+    </div>
+    <div class="card-title">${esc(e.title)}</div>
+    ${e.memo?`<div class="card-memo">${esc(e.memo)}</div>`:''}
+    <div class="card-foot">
+      <div class="card-date">${fmtDT(e.date,e.time)}</div>
+      ${e.src?`<div class="card-src">${esc(e.src)}</div>`:''}
+    </div>
+  </div>`;
+}
+
+/* ── まとめ ── */
+function renderSummary(){
+  document.getElementById('sum-sub').textContent=`合計 ${entries.length} 件の気づき`;
+  let grid='';
+  Object.entries(CATS).forEach(([k,c])=>{
+    const n=entries.filter(e=>e.cat===k).length;
+    grid+=`<div class="cat-card" onclick="openCatList('${k}')">
+      <div class="cat-stripe" style="background:${c.color}"></div>
+      <div class="cat-icon">${c.icon}</div>
+      <div class="cat-name">${c.label}</div>
+      <div class="cat-cnt"><span>${n}</span>件</div>
+    </div>`;
+  });
+  document.getElementById('cat-grid').innerHTML=grid;
+  const recent=entries.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.id-a.id).slice(0,5);
+  document.getElementById('recent-list').innerHTML = !recent.length
+    ? `<div class="empty"><div class="empty-icon">📝</div><div class="empty-txt">まだ気づきがありません</div></div>`
+    : recent.map(e=>{
+        const c=CATS[e.cat]||CATS.other;
+        return `<div class="recent-card" onclick="openDetail(${e.id})">
+          <span class="recent-badge" style="background:${c.bg};color:${c.dk}">${c.icon} ${c.label}</span>
+          <span class="recent-title">${esc(e.title)}</span>
+          <span class="recent-date">${fmtDate(e.date)}</span>
+        </div>`;
+      }).join('');
+}
+
+/* ── 項目別一覧 ── */
+function openCatList(cat){
+  const c=CATS[cat]||CATS.other;
+  const list=entries.filter(e=>e.cat===cat).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.id-a.id);
+  document.getElementById('catlist-ttl').innerHTML=
+    `<span style="display:inline-flex;align-items:center;gap:6px;">
+      <span style="background:${c.bg};color:${c.dk};padding:3px 10px;border-radius:20px;font-size:12px;">${c.icon} ${c.label}</span>
+      <span style="font-size:13px;font-weight:400;color:var(--mu)">${list.length}件</span>
+    </span>`;
+  document.getElementById('catlist-body').innerHTML = !list.length
+    ? `<div class="empty"><div class="empty-icon">${c.icon}</div><div class="empty-txt">まだ記録がありません</div></div>`
+    : list.map(e=>`<div class="catlist-item" onclick="closeCatList();openDetail(${e.id})">
+        <div class="catlist-title">${esc(e.title)}</div>
+        <div class="catlist-sub">
+          <span>${fmtDT(e.date,e.time)}</span>
+          ${e.src?`<span>${esc(e.src)}</span>`:''}
+          ${e.noted?`<span style="color:var(--note-dk)">✍️ note済</span>`:''}
+        </div>
+      </div>`).join('');
+  document.getElementById('ov-catlist').classList.add('show');
+}
+function closeCatList(){ document.getElementById('ov-catlist').classList.remove('show'); }
+
+/* ── 詳細 ── */
+function openDetail(id){
+  const e=entries.find(x=>x.id==id); if(!e)return;
+  renderDetail(e);
+  document.getElementById('ov-detail').classList.add('show');
+}
+function renderDetail(e){
+  const c=CATS[e.cat]||CATS.other;
+  let html=`<div class="det-cat" style="background:${c.bg};color:${c.dk}">${c.icon} ${c.label}</div>
+    <div class="det-title">${esc(e.title)}</div>`;
+  if(e.memo) html+=`<div class="det-body">${esc(e.memo)}</div>`;
+  html+=`<div class="det-meta">`;
+  if(e.date)       html+=`<div class="det-row"><span class="det-lbl">日時</span><span class="det-val">${fmtDT(e.date,e.time)}</span></div>`;
+  if(e.bookAuthor) html+=`<div class="det-row"><span class="det-lbl">著者</span><span class="det-val">${esc(e.bookAuthor)}</span></div>`;
+  if(e.src)        html+=`<div class="det-row"><span class="det-lbl">出典</span><span class="det-val">${esc(e.src)}</span></div>`;
+  if(e.url)        html+=`<div class="det-row"><span class="det-lbl">URL</span><a class="det-link" href="${esc(e.url)}" target="_blank">${esc(e.url)}</a></div>`;
+  html+=`</div>
+    <div class="note-check-area">
+      <button class="note-check-btn${e.noted?' checked':''}" onclick="toggleNoted(${e.id})">
+        <span class="checkmark">${e.noted?'✅':'⬜'}</span>
+        <span>${e.noted?'note に書きました！':'note に書いた？'}</span>
+      </button>
+    </div>
+    <div class="det-actions">
+      <button class="det-edit" onclick="closeDetail();openAdd(${e.id})">編集</button>
+      <button class="det-del" onclick="deleteEntry(${e.id})">削除</button>
+    </div>`;
+  document.getElementById('det-body').innerHTML=html;
+}
+function toggleNoted(id){
+  const e=entries.find(x=>x.id==id); if(!e)return;
+  e.noted=!e.noted; save(); renderDetail(e);
+  if(currentPage==='home') renderHome();
+}
+function closeDetail(){ document.getElementById('ov-detail').classList.remove('show'); }
+function deleteEntry(id){
+  if(!confirm('この気づきを削除しますか？'))return;
+  entries=entries.filter(e=>e.id!=id); save(); closeDetail();
+  currentPage==='home' ? renderHome() : renderSummary();
+}
+
+/* ── 追加/編集 ── */
+function buildCatSel(sel){
+  document.getElementById('cat-sel').innerHTML=Object.entries(CATS).map(([k,c])=>
+    `<button class="cat-opt${k===sel?' selected':''}" onclick="selCat='${k}';buildCatSel('${k}');toggleBookSection('${k}')">
+      <span>${c.icon}</span>${c.label}</button>`
+  ).join('');
+}
+function toggleBookSection(cat){
+  const isBook = cat==='book';
+  document.getElementById('book-section').classList.toggle('hide', !isBook);
+  document.getElementById('src-row').classList.toggle('hide', isBook);
+  if(!isBook){
+    selectedBook=null;
+    document.getElementById('book-selected-area').classList.add('hide');
+    document.getElementById('book-result-area').innerHTML='';
+  }
+}
+function openAdd(id){
+  editId=id||null;
+  const e=id?entries.find(x=>x.id==id):null;
+  selCat=e?e.cat:'note';
+  selectedBook=null;
+  buildCatSel(selCat);
+  toggleBookSection(selCat);
+  document.getElementById('add-ttl').textContent = e?'編集':'気づきを追加';
+  document.getElementById('f-title').value = e?(e.title||''):'';
+  document.getElementById('f-memo').value  = e?(e.memo||''):'';
+  document.getElementById('f-date').value  = e?(e.date||today()):today();
+  document.getElementById('f-time').value  = e?(e.time||nowTime()):nowTime();
+  document.getElementById('f-src').value   = e?(e.src||''):'';
+  document.getElementById('f-url').value   = e?(e.url||''):'';
+  document.getElementById('book-q').value  = '';
+  document.getElementById('book-result-area').innerHTML='';
+  document.getElementById('scan-status').textContent='本の裏表紙バーコードを撮影してください';
+  document.getElementById('scan-status').className='scan-status';
+  if(e && e.cat==='book' && e.bookTitle){
+    selectedBook={title:e.bookTitle,author:e.bookAuthor||'',isbn:e.bookIsbn||'',thumb:e.bookThumb||''};
+    showSelectedBook();
+  }
+  // モードをカメラに戻す
+  setBookMode('cam');
+  document.getElementById('ov-add').classList.add('show');
+  setTimeout(()=>document.getElementById('f-title').focus(), 280);
+}
+function closeAdd(){ document.getElementById('ov-add').classList.remove('show'); }
+
+function saveEntry(){
+  const title=document.getElementById('f-title').value.trim();
+  if(!title){ document.getElementById('f-title').focus(); return; }
+  const entry={
+    id: editId||Date.now(), cat: selCat, title,
+    memo: document.getElementById('f-memo').value.trim(),
+    date: document.getElementById('f-date').value,
+    time: document.getElementById('f-time').value,
+    src:  document.getElementById('f-src').value.trim(),
+    url:  document.getElementById('f-url').value.trim(),
+    noted: editId ? (entries.find(x=>x.id==editId)?.noted||false) : false,
+  };
+  if(selCat==='book' && selectedBook){
+    entry.bookTitle  = selectedBook.title;
+    entry.bookAuthor = selectedBook.author;
+    entry.bookIsbn   = selectedBook.isbn;
+    entry.bookThumb  = selectedBook.thumb;
+    if(!entry.src) entry.src = selectedBook.title;
+  }
+  if(editId){ const i=entries.findIndex(x=>x.id==editId); if(i>=0)entries[i]=entry; }
+  else entries.unshift(entry);
+  save(); closeAdd();
+  currentPage==='home' ? renderHome() : renderSummary();
+}
+
+/* ── 書籍検索モード切替 ── */
+function setBookMode(mode){
+  bookMode=mode;
+  document.getElementById('bmode-cam').classList.toggle('active', mode==='cam');
+  document.getElementById('bmode-txt').classList.toggle('active', mode==='txt');
+  document.getElementById('book-cam-area').classList.toggle('hide', mode!=='cam');
+  document.getElementById('book-txt-area').classList.toggle('hide', mode!=='txt');
+  document.getElementById('book-result-area').innerHTML='';
+}
+
+/* ── カメラ起動 ── */
+function triggerCamera(){
+  document.getElementById('barcode-input').click();
+}
+
+/* ── 撮影画像からISBNデコード ── */
+async function handleBarcodeImage(input){
+  const file=input.files[0]; if(!file)return;
+  setScanStatus('解析中…','');
+  input.value=''; // リセット（同じファイルを再選択できるように）
+  try{
+    let isbn=null;
+    if('BarcodeDetector' in window){
+      // Chrome系（Android）でネイティブ対応
+      const bd=new BarcodeDetector({formats:['ean_13','ean_8','upc_a']});
+      const bitmap=await createImageBitmap(file);
+      const codes=await bd.detect(bitmap);
+      if(codes.length) isbn=codes[0].rawValue;
+      else throw new Error('バーコードを認識できませんでした。\n別の角度で再撮影するか、テキスト検索をお使いください。');
+    } else {
+      // Safari（iPhone）はBarcodeDetector未対応 → テキスト入力へ誘導
+      throw new Error('このブラウザはカメラスキャン非対応です。\n「タイトル・著者で検索」をお使いください。');
+    }
+    if(isbn){
+      setScanStatus(`ISBN ${isbn} を検索中…`,'');
+      await _searchGoogleBooks(`isbn:${isbn.replace(/[^0-9X]/gi,'')}`);
+    }
+  }catch(err){
+    setScanStatus(err.message||'エラーが発生しました','err');
+  }
+}
+
+function setScanStatus(msg,cls){
+  const el=document.getElementById('scan-status');
+  el.textContent=msg; el.className='scan-status'+(cls?' '+cls:'');
+}
+
+/* ── テキスト検索 ── */
+async function searchBook(){
+  const q=document.getElementById('book-q').value.trim(); if(!q)return;
+  const isIsbn=/^[0-9\-]{10,17}$/.test(q.replace(/\-/g,''));
+  const query=isIsbn?`isbn:${q.replace(/\-/g,'')}`:encodeURIComponent(q);
+  document.getElementById('book-result-area').innerHTML=`<div class="book-loading">検索中…</div>`;
+  await _searchGoogleBooks(query);
+}
+
+/* ── Google Books API ── */
+async function _searchGoogleBooks(query){
+  const area=document.getElementById('book-result-area');
+  area.innerHTML=`<div class="book-loading">検索中…</div>`;
+  try{
+    const res=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=6&country=JP`);
+    const data=await res.json();
+    if(!data.items||!data.items.length){
+      area.innerHTML=`<div class="book-empty">見つかりませんでした</div>`;
+      setScanStatus('',''); return;
+    }
+    setScanStatus('タップして選んでください','ok');
+    window._bCache=data.items;
+    area.innerHTML=`<div class="book-results">`+data.items.map((item,i)=>{
+      const info=item.volumeInfo;
+      const thumb=info.imageLinks?.thumbnail||'';
+      return `<div class="book-result-item" onclick="selectBook(${i})">
+        ${thumb
+          ?`<img class="book-thumb" src="${thumb}" alt="">`
+          :`<div class="book-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px">📚</div>`}
+        <div class="book-info">
+          <div class="book-title">${esc(info.title||'タイトル不明')}</div>
+          <div class="book-author">${esc((info.authors||[]).join('、')||'著者不明')}</div>
+        </div>
+      </div>`;
+    }).join('')+`</div>`;
+  }catch(err){
+    area.innerHTML=`<div class="book-empty">通信エラー。再度お試しください</div>`;
+    setScanStatus('','');
+  }
+}
+function selectBook(i){
+  const item=window._bCache[i]; if(!item)return;
+  const info=item.volumeInfo;
+  selectedBook={
+    title:  info.title||'',
+    author: (info.authors||[]).join('、'),
+    isbn:   (info.industryIdentifiers||[]).find(x=>x.type==='ISBN_13')?.identifier||'',
+    thumb:  info.imageLinks?.thumbnail||'',
+  };
+  if(!document.getElementById('f-title').value.trim())
+    document.getElementById('f-title').value=selectedBook.title;
+  document.getElementById('book-result-area').innerHTML='';
+  setScanStatus('','');
+  showSelectedBook();
+}
+function showSelectedBook(){
+  const b=selectedBook; if(!b)return;
+  const area=document.getElementById('book-selected-area');
+  area.classList.remove('hide');
+  area.innerHTML=`<div class="book-selected">
+    ${b.thumb
+      ?`<img class="book-thumb" src="${b.thumb}" alt="">`
+      :`<div class="book-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px">📚</div>`}
+    <div>
+      <div class="book-title">${esc(b.title)}</div>
+      <div class="book-author">${esc(b.author)}</div>
+      ${b.isbn?`<div style="font-size:11px;color:var(--mu);margin-top:2px">ISBN: ${esc(b.isbn)}</div>`:''}
+      <button class="book-clear" onclick="clearBook()">選び直す</button>
+    </div>
+  </div>`;
+}
+function clearBook(){
+  selectedBook=null;
+  document.getElementById('book-selected-area').classList.add('hide');
+  document.getElementById('book-result-area').innerHTML='';
+  document.getElementById('book-q').value='';
+  setScanStatus('本の裏表紙バーコードを撮影してください','');
+}
+
+/* ── メモ欄：自動改行 ── */
+(function(){
+  const BREAK=/[。．！？…‥!?]/u;
+  function isEmoji(ch){
+    if(!ch)return false;
+    const cp=ch.codePointAt(0);
+    return(cp>=0x1F300&&cp<=0x1FAFF)||(cp>=0x2600&&cp<=0x27BF)||(cp>=0x1F900&&cp<=0x1F9FF);
+  }
+  function shouldBreak(str,pos){
+    const ch=str[pos]; if(!ch)return false;
+    if(BREAK.test(ch))return true;
+    if(pos>0&&isEmoji(str[pos-1]+str[pos]))return true;
+    if(isEmoji(ch))return true;
+    return false;
+  }
+  function autoLB(ta){
+    if(!_settings.autoLB)return;  // オフなら何もしない
+    const v=ta.value, s=ta.selectionStart;
+    if(s===0)return;
+    if(shouldBreak(v,s-1)&&v[s]!=='\n'){
+      ta.value=v.slice(0,s)+'\n'+v.slice(s);
+      ta.setSelectionRange(s+1,s+1);
+    }
+  }
+  function bind(){
+    const ta=document.getElementById('f-memo'); if(!ta)return;
+    ta.addEventListener('input',function(e){ if(!e.isComposing)autoLB(this); });
+    ta.addEventListener('compositionend',function(){ autoLB(this); });
+  }
+  document.readyState==='loading'
+    ? document.addEventListener('DOMContentLoaded',bind)
+    : bind();
+})();
+
+/* Enter キーで書籍テキスト検索 */
+document.addEventListener('DOMContentLoaded',()=>{
+  const bq=document.getElementById('book-q');
+  if(bq) bq.addEventListener('keydown',e=>{ if(e.key==='Enter')searchBook(); });
+});
+
+renderHome();
+</script>
+</body>
+</html>
